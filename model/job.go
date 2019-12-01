@@ -1,8 +1,26 @@
-package main
+package model
 
-import "time"
+import (
+	"bytes"
+	"sync"
+)
 
-// A Job represents a linux process for the server to spawn.
+// A Job represents a linux process for the server to spawn. The mapping is one-to-one -- only one process per job.
+type Job struct {
+	// fields facing users
+	ID            string `json:"id"`
+	Command       string `json:"command"`
+	Status        string `json:"status"` // one of: created, started, stopped
+	Logs          string `json:"logs"`
+	ReasonForExit string `json:"reasonForExit"`
+
+	// hidden from users
+	Output     bytes.Buffer `json:"-"`
+	ManualStop chan string  `json:"-"`
+	wg         *sync.WaitGroup
+}
+
+/*
 type Job struct {
 	ID        int       `json:"id"`
 	Name      string    `json:"name"`
@@ -14,7 +32,7 @@ type Job struct {
 	Argv []string          `json:"argv"`
 	Envp map[string]string `json:"envp"`
 
-	Status     string    `json:"status"`
+	Status     string    `json:"status"` // one of: created, started, stopped, finished
 	ModifiedAt time.Time `json:"modifiedAt"`
 	ReturnCode int       `json:"returnCode"`
 	Logs       string    `json:"logs"`
@@ -24,4 +42,4 @@ type Job struct {
 	// RetryPolicy (retry related -- backoff, max retries, under what condition should we retry etc)
 	// CallbackPolicy (callback related -- is it needed, where/how should it deliver to etc)
 	// Version (if this api, schema, or service is versioned)
-}
+}*/

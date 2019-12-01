@@ -1,4 +1,4 @@
-package main
+package model
 
 // A Role represents the (mutually exclusive) permissions of access.
 type Role string
@@ -30,6 +30,7 @@ func (user User) HasRequiredRoles(requiredRoles []Role) bool {
 }
 
 // Users represents a list of Users.
+// TODO: actually this can just be a map of username:User.
 type Users struct {
 	Users []User
 }
