@@ -13,15 +13,16 @@ import (
 	"github.com/mikihau/rest-job-worker/model"
 )
 
-// http server adapted from: https://gist.github.com/enricofoltran/10b4a980cd07cb02836f70a4ab3e72d7
+// This http server is adapted from: https://gist.github.com/enricofoltran/10b4a980cd07cb02836f70a4ab3e72d7.
 func main() {
-	listenAddr := ":8080" // hard coded -- should go to a config file
+	//listenAddr := ":8080" // hard coded -- should go to a config file
+	listenAddr := ":443"
 
 	var logger = log.New(os.Stdout, "", log.LstdFlags|log.LUTC|log.Lshortfile)
 	logger.Printf("Server is starting...")
 
 	router := mux.NewRouter().StrictSlash(true)
-	// TODO: provide informative error messages for requests that errored out -- can do an error formatter
+	// TODO: provide consistent, informative error messages for requests that errored out -- can do an error formatter
 	router.HandleFunc("/jobs", handler.VerifyAuth(handler.CreateJob, []model.Role{model.ReadWrite}, logger)).Methods(http.MethodPost)
 	router.HandleFunc("/jobs/{jobId}", handler.VerifyAuth(handler.GetJob, []model.Role{model.ReadWrite, model.ReadOnly}, logger)).Methods(http.MethodGet)
 	router.HandleFunc("/jobs/{jobId}", handler.VerifyAuth(handler.ChangeJobStatus, []model.Role{model.ReadWrite}, logger)).Methods(http.MethodPut)
@@ -62,7 +63,9 @@ func main() {
 	}()
 
 	logger.Println("Server is ready to handle requests at", listenAddr)
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+	//http.ListenAndServeTLS(":443", "server.crt", "server.key", nil)
+	if err := server.ListenAndServeTLS("ssl/ca.pem", "ssl/ca.key"); err != nil && err != http.ErrServerClosed {
+		//if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		logger.Fatalf("Could not listen on %s: %v\n", listenAddr, err)
 	}
 

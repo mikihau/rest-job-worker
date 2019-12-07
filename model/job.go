@@ -1,3 +1,4 @@
+// Package model provides basic data models for the rest job worker.
 package model
 
 import (
@@ -20,6 +21,7 @@ type Job struct {
 	wg         *sync.WaitGroup
 }
 
+// An earlier draft here for reference.
 /*
 type Job struct {
 	ID        int       `json:"id"`

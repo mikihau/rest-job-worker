@@ -16,11 +16,11 @@ import (
 	"github.com/mikihau/rest-job-worker/model"
 )
 
-// Without a DB, jobs are stored in memory. Here allJobs is a global variable to keep track of jobs.
+// allJobs is a global variable to keep track of jobs. This is because we need something in place of a DB.
 // WARNING: jobs WILL BE LOST after this program terminates.
 var allJobs = make(map[string]*model.Job)
 
-// this waitgroup helps waiting for processes to terminate
+// jobsWg helps waiting for processes (associated with jobs) to terminate.
 var jobsWg = &sync.WaitGroup{}
 
 // CreateJob creates a new Job without starting it.
@@ -42,7 +42,7 @@ func CreateJob(w http.ResponseWriter, r *http.Request, l *log.Logger) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	// TODO: just assume arg[0] is the executable for now since we're talking about just a single process
+	// just assume arg[0] is the executable for now since we're talking about just a single process
 	executable := strings.Fields(job.Command)[0]
 	if _, err := exec.LookPath(executable); err != nil {
 		l.Printf("Executable not found: %v\n", executable)
@@ -92,7 +92,7 @@ func GetJob(w http.ResponseWriter, r *http.Request, l *log.Logger) {
 
 // ChangeJobStatus changes the status of the job, currently by starting or stopping the job matching the JobID.
 func ChangeJobStatus(w http.ResponseWriter, r *http.Request, l *log.Logger) {
-	// TODO: validate the input -- can use a schema validator, but for now we just care about the "status" field
+	// can use a schema validator, but for now we just care about the "status" field
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		l.Printf("An error occurred while reading response body: %v\n", err)
@@ -127,7 +127,7 @@ func ChangeJobStatus(w http.ResponseWriter, r *http.Request, l *log.Logger) {
 			return
 		}
 		jobsWg.Add(1)
-		go runJob(job, l) // TODO: what happens when the http server gets terminated?
+		go runJob(job, l) // what happens when the http server gets terminated?
 		job.Status = "started"
 	} else { // asking to stop the job
 		if job.Status != "started" {
@@ -158,11 +158,13 @@ func TerminateAllJobs(ctx context.Context, l *log.Logger) error {
 			job.ManualStop <- "Service Shutdown"
 		}
 	}
+
 	channel := make(chan bool)
 	go func() {
 		defer close(channel)
 		jobsWg.Wait() // um what if this never returns?
 	}()
+
 	select {
 	case <-channel:
 		return nil
@@ -186,6 +188,7 @@ func runJob(j *model.Job, l *log.Logger) {
 	go func() {
 		done <- cmd.Wait()
 	}()
+
 	select { // 3 ways to end the spawned process
 	// 1. timeout
 	case <-time.After(30 * time.Second): // timeout should be configurable, through a config file and provided as a param on a per Job basis
@@ -211,6 +214,7 @@ func runJob(j *model.Job, l *log.Logger) {
 			j.ReasonForExit = "process finished"
 		}
 	}
+
 	j.Logs = string(j.Output.Bytes()) // can have some more escaping, but good for now
 	j.Status = "stopped"
 }
